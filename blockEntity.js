@@ -76,14 +76,21 @@ function signPC (registry) {
     if (!block.entity) return ''
     const messages = block.entity?.value?.[side]?.value?.messages?.value?.value
     if (!messages) return ''
-    return noMoreJson
-      ? messages.join('\n')
-      : messages.map(text => {
-        const parsed = JSON.parse(text)
-        return typeof parsed === 'string'
-          ? parsed
-          : new ChatMessage(parsed).toString()
+    if (noMoreJson) {
+      // sign text lines may be plain strings or styled text-component compounds; handle both shapes
+      return messages.map(entry => {
+        if (typeof entry === 'string') return entry
+        const simplified = nbt.simplify({ type: 'compound', value: entry })
+        const component = Object.prototype.hasOwnProperty.call(simplified, '') ? simplified[''] : simplified
+        return typeof component === 'string' ? component : new ChatMessage(component).toString()
       }).join('\n')
+    }
+    return messages.map(text => {
+      const parsed = JSON.parse(text)
+      return typeof parsed === 'string'
+        ? parsed
+        : new ChatMessage(parsed).toString()
+    }).join('\n')
   }
 
   function setLegacySignText (block, text) {
